@@ -1,3 +1,5 @@
+Set the current context to `dotnet-webapp-sample`
+
 ## Build
 
 - From *Visual Studio* press Ctrl+Shift+B
