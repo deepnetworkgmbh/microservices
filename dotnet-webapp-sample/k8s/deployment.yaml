@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webapptemplatedeployment
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  minReadySeconds: 5
+  template:
+    metadata:
+      labels:
+        app: webapptemplate
+    spec:
+      containers:
+      - name: webapptemplate
+        image: deepnetworkacr.azurecr.io/webapptemplate:latest
+        imagePullPolicy: Always
+      imagePullSecrets:
+        - name: azurecontainerreg
+      readinessProbe:
+        httpGet:
+          path: /monitoring/readiness
+          port: 80
+        initialDelaySeconds: 3
+        periodSeconds: 3
+        failureThreshold: 3
+      livenessProbe:
+        httpGet:
+          path: /monitoring/health
+          port: 80
+        initialDelaySeconds: 3
+        periodSeconds: 10
+        failureThreshold: 3
