@@ -2,6 +2,8 @@
 using Microsoft.AspNetCore.Hosting;
 using Serilog;
 using Serilog.Sinks.Elasticsearch;
+using System;
+using WebApplicationTemplate.Common;
 
 namespace WebApplicationTemplate
 {
@@ -9,11 +11,25 @@ namespace WebApplicationTemplate
     {
         public static void Main(string[] args)
         {
-            CreateWebHostBuilder(args).Build().Run();
+            var host = CreateWebHostBuilder(args).Build();
+
+            try
+            {
+                // Initialize other dependencies
+                StateManager.SetHealthy();
+            }
+            catch(Exception ex)
+            {
+                Log.Error(ex, "Failed to initialize dependencies");
+                StateManager.RequestRestart();
+            }
+
+            host.Run();
         }
 
         public static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
-            WebHost.CreateDefaultBuilder(args)
+            WebHost
+                .CreateDefaultBuilder(args)
                 .UseSerilog((ctx, config) =>
                 {
                     config
