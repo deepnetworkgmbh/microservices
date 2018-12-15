@@ -1,10 +1,10 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: dotnet_webapptemplatedeployment
+  name: dotnet-webapptemplatedeployment
   labels:
-    app: dotnet_webapp
     version: ${version}
+    app: dotnet-webapp
 spec:
   replicas: 3
   strategy:
@@ -16,8 +16,8 @@ spec:
   template:
     metadata:
       labels:
-        app: dotnet_webapp
         version: ${version}
+        app: dotnet-webapp
     spec:
       containers:
       - name: webapptemplate
