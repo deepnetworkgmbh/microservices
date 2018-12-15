@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
       - name: webapptemplate
-        image: deepnetworkacr.azurecr.io/webapptemplate:${version}
+        image: ${containerImage}
         imagePullPolicy: Always
         envFrom:
         - configMapRef:
