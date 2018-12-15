@@ -1,7 +1,10 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: webapptemplatedeployment
+  name: dotnet_webapptemplatedeployment
+  labels:
+    app: dotnet_webapp
+    version: ${version}
 spec:
   replicas: 3
   strategy:
@@ -13,25 +16,29 @@ spec:
   template:
     metadata:
       labels:
-        app: webapptemplate
+        app: dotnet_webapp
+        version: ${version}
     spec:
       containers:
       - name: webapptemplate
-        image: deepnetworkacr.azurecr.io/webapptemplate:latest
+        image: deepnetworkacr.azurecr.io/webapptemplate:${version}
         imagePullPolicy: Always
+        envFrom:
+        - configMapRef:
+            name: webapptemplate-config
+        readinessProbe:
+          httpGet:
+            path: /monitoring/readiness
+            port: 80
+          initialDelaySeconds: 3
+          periodSeconds: 3
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /monitoring/health
+            port: 80
+          initialDelaySeconds: 3
+          periodSeconds: 10
+          failureThreshold: 3
       imagePullSecrets:
         - name: azurecontainerreg
-      readinessProbe:
-        httpGet:
-          path: /monitoring/readiness
-          port: 80
-        initialDelaySeconds: 3
-        periodSeconds: 3
-        failureThreshold: 3
-      livenessProbe:
-        httpGet:
-          path: /monitoring/health
-          port: 80
-        initialDelaySeconds: 3
-        periodSeconds: 10
-        failureThreshold: 3
