@@ -1,38 +1,45 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Serilog;
+using Microsoft.Extensions.Logging;
 using WebApplicationTemplate.Common;
 
 namespace WebApplicationTemplate.Controllers
 {
-    [Route("monitoring")]
+    [Route("[controller]")]
     [ApiController]
     public class MonitoringController : ControllerBase
     {
-        readonly ILogger log = Log.ForContext("SourceContext", "Monitoring");
+        private readonly ILogger<MonitoringController> _log;
 
-        [HttpGet]
-        [Route("readiness")]
+        public MonitoringController(ILogger<MonitoringController> log)
+        {
+            _log = log;
+        }
+
+        [HttpGet("readiness")]
         public IActionResult Readiness()
         {
             var state = StateManager.CurrentState;
             if (state == State.Healthy)
+            {
+                _log.LogInformation("Service is ready");
                 return Ok();
+            }
 
-            log.Warning("Readiness probe was requested, but service is in {State} state", state);
+            _log.LogWarning("Readiness probe was requested, but service is in {State} state", state);
             return StatusCode(503);
         }
 
-        [HttpGet]
-        [Route("health")]
+        [HttpGet("health")]
         public IActionResult Health()
         {
             var state = StateManager.CurrentState;
             if (state == State.RequiresRestart)
             {
-                log.Warning("Health probe was requested, but service is in {State} state", state);
+                _log.LogWarning("Health probe was requested, but service is in {State} state", state);
                 return StatusCode(503);
             }
 
+            _log.LogInformation("Service is healthy");
             return Ok();
         }
     }

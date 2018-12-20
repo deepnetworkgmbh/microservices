@@ -14,11 +14,5 @@ namespace UnitTests
         {
             true.Should().Be(true, "happy path");
         }
-
-        [Test]
-        public void Failed()
-        {
-            false.Should().Be(true, "failure");
-        }
     }
 }

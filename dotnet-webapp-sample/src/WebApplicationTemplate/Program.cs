@@ -18,7 +18,7 @@ namespace WebApplicationTemplate
                 // Initialize other dependencies
                 StateManager.SetHealthy();
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Log.Error(ex, "Failed to initialize dependencies");
                 StateManager.RequestRestart();
@@ -38,11 +38,14 @@ namespace WebApplicationTemplate
 
                     if (ctx.HostingEnvironment.IsDevelopment())
                     {
-                        config.WriteTo.Console();
+                        config.WriteTo.Console(new ElasticsearchJsonFormatter());
                     }
                     else
                     {
-                        config.WriteTo.Console(new ElasticsearchJsonFormatter());
+                        config
+                            .Enrich.WithProperty("NodeName", Environment.GetEnvironmentVariable("NODE_NAME"))
+                            .Enrich.WithProperty("PodName", Environment.GetEnvironmentVariable("POD_NAME"))
+                            .WriteTo.Console(new ElasticsearchJsonFormatter());
                     }
                 })
                 .UseStartup<Startup>();

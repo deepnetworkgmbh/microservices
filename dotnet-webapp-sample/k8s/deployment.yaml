@@ -1,10 +1,11 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: dotnet-webapptemplatedeployment
+  name: dotnet-webapp-1-deployment
+  namespace: onboarding
   labels:
-    version: ${version}
-    app: dotnet-webapp
+    version: "1.0"
+    app: dotnet-webapp-1
 spec:
   replicas: 3
   strategy:
@@ -13,19 +14,31 @@ spec:
       maxSurge: 1
       maxUnavailable: 1
   minReadySeconds: 5
+  selector:
+    matchLabels:
+      app: dotnet-webapp-1
   template:
     metadata:
       labels:
-        version: ${version}
-        app: dotnet-webapp
+        version: "1.0"
+        app: dotnet-webapp-1
     spec:
       containers:
-      - name: webapptemplate
-        image: ${containerImage}
+      - name: dotnet-webapp-1
+        image: dnjenkinscicdregistry.azurecr.io/webapptemplate:latest
         imagePullPolicy: Always
         envFrom:
         - configMapRef:
-            name: webapptemplate-config
+            name: dotnet-webapp-1-config
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
         readinessProbe:
           httpGet:
             path: /monitoring/readiness
@@ -41,4 +54,62 @@ spec:
           periodSeconds: 10
           failureThreshold: 3
       imagePullSecrets:
-        - name: azurecontainerreg
+        - name: acr-secret
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dotnet-webapp-2-deployment
+  namespace: onboarding
+  labels:
+    version: "1.0"
+    app: dotnet-webapp-2
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  minReadySeconds: 5
+  selector:
+    matchLabels:
+      app: dotnet-webapp-2
+  template:
+    metadata:
+      labels:
+        version: "1.0"
+        app: dotnet-webapp-2
+    spec:
+      containers:
+      - name: dotnet-webapp-2
+        image: dnjenkinscicdregistry.azurecr.io/webapptemplate:latest
+        imagePullPolicy: Always
+        envFrom:
+        - configMapRef:
+            name: dotnet-webapp-2-config
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        readinessProbe:
+          httpGet:
+            path: /monitoring/readiness
+            port: 80
+          initialDelaySeconds: 3
+          periodSeconds: 3
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /monitoring/health
+            port: 80
+          initialDelaySeconds: 3
+          periodSeconds: 10
+          failureThreshold: 3
+      imagePullSecrets:
+        - name: acr-secret

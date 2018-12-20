@@ -1,14 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using CorrelationId;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
+using WebApplicationTemplate.Common;
 
 namespace WebApplicationTemplate
 {
@@ -25,11 +22,22 @@ namespace WebApplicationTemplate
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
+            services.AddCorrelationId();
+            services.Configure<DependenciesConfig>(opts =>
+            {
+                opts.DependencyUrl = Environment.GetEnvironmentVariable("DEPENDENCY_URL");
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
+            app.UseCorrelationId(new CorrelationIdOptions
+            {
+                UseGuidForCorrelationId = true
+            });
+            app.UseMiddleware<CorrelationIdLoggingMiddleware>();
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();

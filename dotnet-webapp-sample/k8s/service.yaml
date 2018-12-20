@@ -1,12 +1,30 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: dotnet-webapptemplate
+  name: dotnet-webapp-1-service
+  namespace: onboarding
   labels:
-    app: dotnet-webapp
+    app: dotnet-webapp-1
 spec:
   selector:
-    app: dotnet-webapp
+    app: dotnet-webapp-1
+  ports:
+  - name: http
+    protocol: TCP
+    port: 80
+    targetPort: 80
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dotnet-webapp-2-service
+  namespace: onboarding
+  labels:
+    app: dotnet-webapp-2
+spec:
+  selector:
+    app: dotnet-webapp-2
   ports:
   - name: http
     protocol: TCP

@@ -1,0 +1,90 @@
+pipeline {
+    agent none
+    options {
+        skipDefaultCheckout true
+    }
+    stages {
+        stage('Publish solution') {
+            agent {
+                docker {
+                    image 'microsoft/dotnet:2.2-sdk-alpine'
+                    args '-u root'
+                }
+            }
+            environment {
+                RESULTS_DIR = "${env.WORKSPACE}/build_results"
+                SOLUTION_PATH = "${env.WORKSPACE}/dotnet-webapp-sample/src/WebApplicationTemplate.sln"
+            }
+            stages {
+                stage('Clean') {
+                    steps {
+                        sh 'rm -rf $WORKSPACE/**/bin $WORKSPACE/**/obj $RESULTS_DIR'
+                        sh 'mkdir $RESULTS_DIR'
+                    }
+                }
+                stage('Checkout') {
+                    steps {
+                        checkout scm
+                    }
+                }
+                stage('Restore') {
+                    steps {
+                        sh 'dotnet restore $SOLUTION_PATH'
+                    }
+                }
+                stage('Build') {
+                    steps {
+                        sh 'dotnet build $SOLUTION_PATH -c Release --no-restore'
+                    }
+                }
+                stage('Run unit tests') {
+                    steps {
+                        sh 'dotnet test ./dotnet-webapp-sample/src/UnitTests -c Release --logger "trx;LogFileName=$RESULTS_DIR/TestResults.xml" --no-restore --no-build'
+                    }
+                }
+                stage('Publish') {
+                    steps {
+                        sh 'dotnet publish ./dotnet-webapp-sample/src/WebApplicationTemplate/WebApplicationTemplate.csproj -c Release -o $RESULTS_DIR/app --no-restore --no-build'
+                        sh 'cp ./cicd/Dockerfile $RESULTS_DIR/Dockerfile'
+                        dir(env.RESULTS_DIR) {
+                            stash name: env.BUILD_TAG
+                        }
+                    }
+                }
+            }
+            post {
+                always {
+                    sh 'rm -rf $WORKSPACE/**/bin $WORKSPACE/**/obj $RESULTS_DIR'
+                }
+            }
+        }
+        stage('Build and push image') {
+            agent any
+            environment {
+                RESULTS_DIR = "${env.WORKSPACE}/build_results_stashed"
+                DOCKER_CREDENTIALS_ID = 'azure_container_registry_credentials'
+                IMAGE_VERSION = "1.${env.BUILD_ID}"
+                IMAGE_NAME = 'onboarding-web-app'
+                IMAGE_REGISTRY = 'dnjenkinscicdregistry.azurecr.io'
+            }
+            steps {
+                sh 'rm -rf $RESULTS_DIR'
+                sh 'mkdir $RESULTS_DIR'
+                dir(env.RESULTS_DIR) {
+                    unstash env.BUILD_TAG
+                }
+                withDockerRegistry([ credentialsId: env.DOCKER_CREDENTIALS_ID, url: "https://${env.IMAGE_REGISTRY}" ]) {
+                    sh 'docker build --force-rm -f $RESULTS_DIR/Dockerfile $RESULTS_DIR/app -t $IMAGE_REGISTRY/$IMAGE_NAME:$IMAGE_VERSION'
+                    sh 'docker tag $IMAGE_REGISTRY/$IMAGE_NAME:$IMAGE_VERSION $IMAGE_REGISTRY/$IMAGE_NAME:latest'
+                    sh 'docker push $IMAGE_REGISTRY/$IMAGE_NAME:$IMAGE_VERSION'
+                    sh 'docker push $IMAGE_REGISTRY/$IMAGE_NAME:latest'
+                }
+            }
+            post {
+                always {
+                    sh 'docker rmi $IMAGE_REGISTRY/$IMAGE_NAME:$IMAGE_VERSION $IMAGE_REGISTRY/$IMAGE_NAME:latest'
+                }
+            }
+        }
+    }
+}
